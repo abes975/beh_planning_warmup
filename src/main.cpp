@@ -1,0 +1,64 @@
+#include "road.hpp"
+#include "vehicle.hpp"
+#include <iostream>
+#include <fstream>
+#include <math.h>
+#include <vector>
+#include <unistd.h>
+
+using namespace std;
+
+//impacts default behavior for most states
+int SPEED_LIMIT = 10;
+
+//all traffic in lane (besides ego) follow these speeds
+vector<int> LANE_SPEEDS = {6,7,8,9};
+
+//Number of available "cells" which should have traffic
+double TRAFFIC_DENSITY   = 0.15;
+
+// At each timestep, ego can set acceleration to value between
+// -MAX_ACCEL and MAX_ACCEL
+int MAX_ACCEL = 2;
+
+// s value and lane number of goal.
+vector<int> GOAL = {666, 1};
+
+// These affect the visualization
+int FRAMES_PER_SECOND = 4;
+int AMOUNT_OF_ROAD_VISIBLE = 40;
+
+int main()
+{
+	Road road = Road(SPEED_LIMIT, TRAFFIC_DENSITY, LANE_SPEEDS);
+	road.update_width = AMOUNT_OF_ROAD_VISIBLE;
+	road.populate_traffic();
+
+	int goal_s = GOAL[0];
+	int goal_lane = GOAL[1];
+
+	//configuration data: speed limit, num_lanes, goal_s, goal_lane, max_acceleration
+	int num_lanes = LANE_SPEEDS.size();
+	// Udacity HAS NOT TESTED THIS CODE!! I wonder how they use student money....
+	vector<int> ego_config = {SPEED_LIMIT,num_lanes,MAX_ACCEL, goal_lane, goal_s};
+	road.add_ego(2,0, ego_config);
+	int timestep = 0;
+
+	while (road.get_ego().s <= GOAL[0]) {
+		timestep++;
+		if (timestep > 150) {
+			cout << "Taking too long to reach goal. Go faster!" << endl;
+			break;
+		}
+		road.advance();
+		road.display(timestep);
+		usleep(1000000 / FRAMES_PER_SECOND);
+	}
+	Vehicle ego = road.get_ego();
+	if (ego.lane == GOAL[1]) {
+		cout << "You got to the goal in " << timestep << " seconds!" << endl;
+	}	else {
+		cout << "You missed the goal. You are in lane " << ego.lane << " instead of " << GOAL[1] << endl;
+	}
+	return 0;
+}
